@@ -1,0 +1,49 @@
+import streamlit as st
+from PIL import Image
+import numpy as np
+import tensorflow as tf  # If you used TensorFlow to train the model
+import pandas as pd  # To handle the mapping
+# from keras.models import load_model
+
+# Load model
+model = tf.keras.models.load_model('traffic_classifier.h5')
+
+# Load the mapping CSV file
+mapping_df = pd.read_csv('mapping.csv')
+
+# Define the prediction function
+def predict(image):
+    # Preprocess the image
+    image = image.resize((224, 224))
+    image = np.array(image) / 255.0  # Normalize
+    image = np.expand_dims(image, axis=0)  # Expand dimensions to match the model's input shape
+    
+    prediction = model.predict(image)
+    return prediction
+
+# Map prediction to category
+def get_category(prediction):
+    label = np.argmax(prediction) + 1 
+    # Find the category from the mapping DataFrame
+    category = mapping_df[mapping_df['label'] == label]['category'].values[0]
+    return label, category
+
+# Set the title of the page
+st.title('Traffic Sign Recognition')
+
+# File upload section
+uploaded_file = st.file_uploader("Upload a traffic sign image", type=["jpg", "png", "jpeg"])
+
+if uploaded_file is not None:
+    # Display the uploaded image
+    st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+
+    # Make the prediction
+    image = Image.open(uploaded_file)
+    prediction = predict(image)
+
+    # Get the mapped label and category
+    label, category = get_category(prediction)
+
+    # Display the prediction
+    st.write(f"Category: {category}")
